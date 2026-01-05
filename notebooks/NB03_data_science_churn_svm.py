@@ -27,18 +27,16 @@ ASSUMPTIONS:
     - Supuestos importantes sobre los datos o el modelo
 
 DEPENDENCIES:
-    ¬ pandas        2.3.3
-        - numpy     2.4.0
-    ¬ plotly        6.5.0
-        ¬ narwhals  2.14.0
-    ¬ nbformat  5.10.4
-
-    
-    ¬ matplotlib    3.10.8
-
-    - scikit-learn
-    - matplotlib
-    (etc.)
+    ¬ pandas            2.3.3
+        - numpy         2.4.0
+    ¬ plotly            6.5.0
+        ¬ narwhals      2.14.0
+    ¬ nbformat          5.10.4
+    ¬ scikit-learn      1.8.0
+        ¬ joblib        1.5.3
+        ¬ scipy         1.16.3
+        ¬ threadpoolctl 3.6.0
+    ¬ matplotlib        3.10.8
 
 USE:
     Ejemplo rápido de cómo se usa este módulo.
@@ -52,6 +50,12 @@ import plotly.express as px
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.model_selection import train_test_split
+from sklearn.dummy import DummyClassifier
+from sklearn.tree import DecisionTreeClassifier
+import matplotlib.pyplot as plt
+from sklearn.tree import plot_tree
+
 
 """
 SECTION 1 - EXPLORATORY ANALYSIS
@@ -83,23 +87,24 @@ px.box(datos, x="monthly_fee", color="churned")
 px.box(datos, x="number_of_profiles", color="churned")
 px.box(datos, x="avg_watch_time_per_day", color="churned")
 
+
 """
 SECTION 2 - DATA TRANSFORMATION
 """
 datos
-X_w_drop = datos.drop(columns=["customer_id", "gender", 
+x_w_drop = datos.drop(columns=["customer_id", "gender", 
                         "monthly_fee", "avg_watch_time_per_day", 
                         "churned"])
 y_series = datos["churned"]
 
-X_w_drop            # Pandas array
-X_w_drop.info()
+x_w_drop            # Pandas array
+x_w_drop.info()
 y_series            # Pandas series
 y_series.info()
 
 # TRANSFORMING THE EXPLANATORY VARIABLES
 # One hot enconder for ategorical variables
-columnas = X_w_drop.columns
+columnas = x_w_drop.columns
 one_hot_categorical = make_column_transformer((OneHotEncoder(drop="if_binary"), # Ingnor binary cols
                                                ["subscription_type",
                                                 "region",
@@ -111,13 +116,13 @@ one_hot_categorical = make_column_transformer((OneHotEncoder(drop="if_binary"), 
                                               force_int_remainder_cols=False)   # No cambiar el nombre de las cols
 
 # Apply one hot encoder
-X = one_hot_categorical.fit_transform(X_w_drop)
+x = one_hot_categorical.fit_transform(x_w_drop)
 one_hot_categorical.get_feature_names_out(columnas)
-X
+x
 # Visualize X as DF
-X_one_hot_visual = pd.DataFrame(X, columns=one_hot_categorical.get_feature_names_out(columnas))
-X_one_hot_visual
-X_one_hot_visual.info()
+x_one_hot_visual = pd.DataFrame(x, columns=one_hot_categorical.get_feature_names_out(columnas))
+x_one_hot_visual
+x_one_hot_visual.info()
 
 # TRANSFORMING THE RESPONSE VARIABLE
 y_series
@@ -126,3 +131,80 @@ label_binarizer = LabelBinarizer()
 y = label_binarizer.fit_transform(y_series)
 y
 
+
+"""
+SECTION 3 - ADJUSTING MODELS
+"""
+# Dividing dataset between training and test
+# Default test_size=0.25
+x_train, x_test, y_train, y_test = train_test_split(x, y,
+                                                    random_state=4,
+                                                    stratify=y)
+"""
+SECTION 3.1 - BASELINE
+"""
+# BASELINE MODEL (DUMMY)
+dummy_model = DummyClassifier(random_state=4)
+dummy_model.fit(x_train, y_train)
+dummy_model.score(x_test, y_test)   # Accuracy 0.5032
+
+"""
+SECTION 3.2 - DECISION TREE
+"""
+# DECISION TREE MODEL
+tree_model_overfitted = DecisionTreeClassifier(random_state=4)
+tree_model_overfitted.fit(x_train, y_train)
+tree_model_overfitted.score(x_test, y_test) # Accuracy 0.9728
+
+valores_columnas = ["Basic", "Standard", "Premium",
+                    "Africa", "Europe", "Asia", "Oceania", "South America", "North America",
+                    "TV", "Mobile", "Tablet", "Laptop", "Desktop",
+                    "Gift Card", "Crypto", "PayPal", "Debit Card", "Credit Card",
+                    "Action", "Sci-Fi", "Drama", "Horror", "Romance", "Comedy", "Documentary",
+                    "age",
+                    "watch_hours",
+                    "last_login_days",
+                    "number_of_profiles"]
+plt.figure(figsize=(80, 25))
+plot_tree(tree_model_overfitted, filled=True,
+          class_names=["no", "yes"],
+          feature_names=valores_columnas)
+# Overfitting test
+tree_model_overfitted.score(x_train, y_train)
+
+# RIGHT DECISION TREE MODEL
+# for i in range(2, 13):
+#     tree_model = DecisionTreeClassifier(max_depth=i,
+#                                     random_state=4)
+#     tree_model.fit(x_train, y_train)
+#     tree_model.score(x_test, y_test)
+#     # Overfitting test
+#     tree_model.score(x_train, y_train)
+#     print(f"max_depth:{i},\
+#           score: {tree_model.score(x_test, y_test)},\
+#           overfitted: {tree_model.score(x_train, y_train)}")
+"""
+    max_depth   random_state    accuracy    overfitted
+    2           4               0.816       0.829333
+    3           4               0.8936      0.910133
+    4           4               0.8944      0.911733
+    5           4               0.9256      0.941333
+    6           4               0.9496      0.9688
+    7           4               0.9704      0.992266
+    8           4               0.9728      0.9952
+    9           4               0.9736      0.9992
+    10          4               0.972       0.999733
+    11          4               0.9728      1.0
+    12          4               0.9728      1.0
+    None        4               0.9728      1.0 
+"""
+tree_model = DecisionTreeClassifier(max_depth=5,
+                                    random_state=4)
+tree_model.fit(x_train, y_train)
+tree_model.score(x_test, y_test)
+plt.figure(figsize=(15, 6))
+plot_tree(tree_model, filled=True, class_names=["no", "yes"])
+
+"""
+SECTION 3.3 - KNN
+"""
