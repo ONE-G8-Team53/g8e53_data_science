@@ -55,7 +55,8 @@ from sklearn.dummy import DummyClassifier
 from sklearn.tree import DecisionTreeClassifier
 import matplotlib.pyplot as plt
 from sklearn.tree import plot_tree
-
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.neighbors import KNeighborsClassifier
 
 """
 SECTION 1 - EXPLORATORY ANALYSIS
@@ -208,3 +209,19 @@ plot_tree(tree_model, filled=True, class_names=["no", "yes"])
 """
 SECTION 3.3 - KNN
 """
+# MIN MAX SCALER (NORMALIZACIÓN)
+min_max_scaler = MinMaxScaler()
+# Train data
+x_train_min_max_normalized = min_max_scaler.fit_transform(x_train)
+# Test data
+x_test_min_max_normalized = min_max_scaler.transform(x_test)
+pd.DataFrame(x_train_min_max_normalized)
+
+knn = KNeighborsClassifier()
+knn.fit(x_train_min_max_normalized, y_train)
+knn.score(x_test_min_max_normalized, y_test)    # 0.6816
+
+"""
+SECTION 3.4 - SVM
+"""
+
