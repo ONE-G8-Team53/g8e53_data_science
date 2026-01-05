@@ -3,29 +3,49 @@ MODULE
     notebooks.NB03_data_science_churn_svm
 
 BRIEF DESCRIPTION:
-    Breve descripción de qué hace este archivo y cuál es su propósito dentro
-    del proyecto de data science.
+    This script compares different algorithms/models for churn 
+    prediction.
 
 PROBLEM CONTEXT:
-    Describe el problema de negocio o analítico que se está resolviendo.
-    Por ejemplo: predicción, clasificación, limpieza de datos, análisis exploratorio, etc.
+    The current problem is identifying customers at risk of churn, 
+    subscription services we decided to focused specifically on
+    video streaming platforms.
 
 DATASET:
-    - Fuente:
-    - Descripción:
-    - Variables principales:
-    - Tamaño aproximado:
+    ¬ Source:       kaggle/netflix-customer-churn-dataset
+    ¬ Main fields:  age, subscrition_tye, watch_hours, last_login_days
+                    region, device, payment_method, number_of_profiles
+                    favorite_genre
+    ¬ Size:         5000 records
+    ¬ Description:  This dataset contains synthetic data simulating
+                    customer behavior for a netflix-like video streaming
+                    service.
 
 PROCESS:
-    - Limpieza de datos
-    - Feature engineering
-    - Entrenamiento de modelo
-    - Evaluación
-    (ajusta según aplique)
+    ¬ Data cleaning (not necessary for the dataset)
+    ¬ Exploratory Analysis
+    ¬ Data transformation
+    ¬ Adjusting models
+        ¬ Model training
+        ¬ Model testing
+    ¬ Model selection
+    ¬ Model serialization
 
 ASSUMPTIONS:
-    - Supuestos importantes sobre los datos o el modelo
-
+    ¬ The dataset field to drop were:
+        FIELD                       REASON
+        ------------------------------------------------------------------------------------------------
+        customer_id                 Affects the model
+        ------------------------------------------------------------------------------------------------
+        gender                      Irrelevant
+        ------------------------------------------------------------------------------------------------
+        monthly_fee                 It has collinearity with the subscription_type
+                                    Its values ​​between regions affect the weight for certain algorithms
+                                    And it is not compared with a per capita income value
+        ------------------------------------------------------------------------------------------------
+        avg_watch_time_per_day      It has collinearity with watch_hours
+        ------------------------------------------------------------------------------------------------
+        
 DEPENDENCIES:
     ¬ pandas            2.3.3
         - numpy         2.4.0
@@ -39,10 +59,11 @@ DEPENDENCIES:
     ¬ matplotlib        3.10.8
 
 USE:
-    Ejemplo rápido de cómo se usa este módulo.
+    Consult the README.md file to use the models
 
 DATE - CHANGE - AUTHOR (NEWEST ON TOP):
-    2026-01-04  Accuracy with SVM compared between kernels      Felix Armenta
+    2026-01-04  Felix Armenta
+                Accuracy with SVM's algorithms compared between kernels
 """
 # import numpy as np
 import pandas as pd
@@ -57,6 +78,9 @@ import matplotlib.pyplot as plt
 from sklearn.tree import plot_tree
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
+from sklearn.preprocessing import StandardScaler
+
 
 """
 SECTION 1 - EXPLORATORY ANALYSIS
@@ -106,7 +130,7 @@ y_series.info()
 # TRANSFORMING THE EXPLANATORY VARIABLES
 # One hot enconder for ategorical variables
 columnas = x_w_drop.columns
-one_hot_categorical = make_column_transformer((OneHotEncoder(drop="if_binary"), # Ingnor binary cols
+one_hot_categorical = make_column_transformer((OneHotEncoder(drop="if_binary"), # Ingnore binary cols
                                                ["subscription_type",
                                                 "region",
                                                 "device",
@@ -199,17 +223,102 @@ tree_model_overfitted.score(x_train, y_train)
     12          4               0.9728      1.0
     None        4               0.9728      1.0 
 """
-tree_model = DecisionTreeClassifier(max_depth=5,
+# 3.2.1 DECISION TREE DEPTH 4
+tree_model_d4 = DecisionTreeClassifier(max_depth=4,
                                     random_state=4)
-tree_model.fit(x_train, y_train)
-tree_model.score(x_test, y_test)
+tree_model_d4.fit(x_train, y_train)
+tree_model_d4.score(x_test, y_test)
 plt.figure(figsize=(15, 6))
-plot_tree(tree_model, filled=True, class_names=["no", "yes"])
+plot_tree(tree_model_d4, filled=True, class_names=["no", "yes"])
+
+# 3.2.2 DECISION TREE DEPTH 5
+tree_model_d5 = DecisionTreeClassifier(max_depth=5,
+                                    random_state=4)
+tree_model_d5.fit(x_train, y_train)
+tree_model_d5.score(x_test, y_test)
+plt.figure(figsize=(15, 6))
+plot_tree(tree_model_d5, filled=True, class_names=["no", "yes"])
+
 
 """
-SECTION 3.3 - KNN
+SECTION 3.3 - SVM (Support Vector Machines)
 """
-# MIN MAX SCALER (NORMALIZACIÓN)
+# Change y to 1d array
+y_train
+print(type(y_train))
+y_train_1d_array = y_train.ravel()
+y_train_1d_array
+print(type(y_train_1d_array))
+y_test_1d_array = y_test.ravel()
+y_test_1d_array
+
+# 3.3.1 SVC WITH KERNEL RADIAL BASIS FUNCTION
+svc_rbf_model = svm.SVC(kernel="rbf", C=1.0, gamma="scale")
+svc_rbf_model.fit(x_train, y_train_1d_array)
+svc_rbf_model.score(x_test, y_test_1d_array)        # 0.8576
+# Overfitting test
+svc_rbf_model.score(x_train, y_train_1d_array)      # OK 0.874133
+
+# 3.3.2 SVC WITH KERNEL LINEAR
+svc_linear_model = svm.SVC(kernel="linear", C=1.0, gamma="scale")
+svc_linear_model.fit(x_train, y_train_1d_array)
+svc_linear_model.score(x_test, y_test_1d_array)     # 0.8768
+# Overfitting test
+svc_linear_model.score(x_train, y_train_1d_array)   # OK 0.893866
+
+# 3.3.3 SVC WITH KERNEL POLYNOMIAL
+svc_poly_model = svm.SVC(kernel="poly", C=1.0, gamma="scale")
+svc_poly_model.fit(x_train, y_train_1d_array)
+svc_poly_model.score(x_test, y_test_1d_array)       # 0.8472
+# Overfitting test
+svc_poly_model.score(x_train, y_train_1d_array)     # OK 0.855733 
+
+# 3.3.4 SVC WITH KERNEL SIGMOID
+svc_sigmoid_model = svm.SVC(kernel="sigmoid", C=1.0, gamma="scale")
+svc_sigmoid_model.fit(x_train, y_train_1d_array)
+svc_sigmoid_model.score(x_test, y_test_1d_array)       # 0.6992
+# Overfitting test
+svc_sigmoid_model.score(x_train, y_train_1d_array)     # 0.741866
+
+# SVR
+# STD SCALER (NORMALIZACIÓN)
+std_scaler = StandardScaler()
+x_train_std_normalized = std_scaler.fit_transform(x_train)
+x_test_std_normalized = std_scaler.transform(x_test)
+pd.DataFrame(x_train_std_normalized)
+
+# 3.3.5 SVR WITH KERNEL RADIAL BASIS FUNCTION
+svr_rbf_model = svm.SVR(kernel="rbf", C=1.0, gamma="scale")
+svr_rbf_model.fit(x_train_std_normalized, y_train_1d_array)
+svr_rbf_model.score(x_test_std_normalized, y_test_1d_array)     # 0.557856
+# Overfitting test
+svr_rbf_model.score(x_train_std_normalized, y_train_1d_array)   # 0.814929
+
+# 3.3.6 SVR WITH KERNEL LINEAR
+svr_linear_model = svm.SVR(kernel="linear", C=1.0, gamma="scale")
+svr_linear_model.fit(x_train_std_normalized, y_train_1d_array)
+svr_linear_model.score(x_test_std_normalized, y_test_1d_array)     # 0.476840
+# Overfitting test
+svr_linear_model.score(x_train_std_normalized, y_train_1d_array)   # 0.514136
+
+# 3.3.7 SVR WITH KERNEL POLYNOMIAL
+svr_poly_model = svm.SVR(kernel="poly", C=1.0, gamma="scale")
+svr_poly_model.fit(x_train_std_normalized, y_train_1d_array)
+svr_poly_model.score(x_test_std_normalized, y_test_1d_array)     # 0.239075
+# Overfitting test
+svr_poly_model.score(x_train_std_normalized, y_train_1d_array)   # 0.773447
+
+# 3.3.8 SVR WITH KERNEL SIGMOID
+svr_sigmoid_model = svm.SVR(kernel="sigmoid", C=1.0, gamma="scale")
+svr_sigmoid_model.fit(x_train_std_normalized, y_train_1d_array)
+svr_sigmoid_model.score(x_test_std_normalized, y_test_1d_array)     # -12.689629
+# Overfitting test
+svr_sigmoid_model.score(x_train_std_normalized, y_train_1d_array)   # -15.327026
+
+"""
+SECTION 3.4 - KNN (K-Nearest Neighbors)
+"""
+# MIN MAX SCALER (NORMALIZATION)
 min_max_scaler = MinMaxScaler()
 # Train data
 x_train_min_max_normalized = min_max_scaler.fit_transform(x_train)
@@ -217,11 +326,40 @@ x_train_min_max_normalized = min_max_scaler.fit_transform(x_train)
 x_test_min_max_normalized = min_max_scaler.transform(x_test)
 pd.DataFrame(x_train_min_max_normalized)
 
-knn = KNeighborsClassifier()
-knn.fit(x_train_min_max_normalized, y_train)
-knn.score(x_test_min_max_normalized, y_test)    # 0.6816
+# 3.4.1 KNN Model with min max scaler
+knn_min_max_model = KNeighborsClassifier()
+knn_min_max_model.fit(x_train_min_max_normalized, y_train_1d_array)
+knn_min_max_model.score(x_test_min_max_normalized, y_test_1d_array)   # 0.6816
+
+# 3.4.2 KNN Model with std scaler
+knn_std_model = KNeighborsClassifier()
+knn_std_model.fit(x_train_std_normalized, y_train_1d_array)
+knn_std_model.score(x_test_std_normalized, y_test_1d_array)           # 0.7176
+
 
 """
-SECTION 3.4 - SVM
+SECTION 4 - MODEL SELECTION
 """
+model_list = [("Baseline", dummy_model, x_test, y_test, x_train, y_train),
+              ("DTree D4", tree_model_d4, x_test, y_test, x_train, y_train),
+              ("DTree D5", tree_model_d5, x_test, y_test, x_train, y_train),
+              ("SVC linear", svc_linear_model, x_test, y_test_1d_array, x_train, y_train_1d_array),
+              ("SVC RBF", svc_rbf_model, x_test, y_test_1d_array, x_train, y_train_1d_array),
+              ("SVC poly", svc_poly_model, x_test, y_test_1d_array, x_train, y_train_1d_array),
+              ("SVC sigmoid", svc_sigmoid_model, x_test, y_test_1d_array, x_train, y_train_1d_array),
+              ("SVR linear", svr_linear_model, x_test_std_normalized, y_test_1d_array, x_train_std_normalized, y_train_1d_array),
+              ("SVR RBF", svr_rbf_model, x_test_std_normalized, y_test_1d_array, x_train_std_normalized, y_train_1d_array),
+              ("SVR poly", svr_poly_model, x_test_std_normalized, y_test_1d_array, x_train_std_normalized, y_train_1d_array),
+              ("SVR sigmoid", svr_sigmoid_model, x_test_std_normalized, y_test_1d_array, x_train_std_normalized, y_train_1d_array),
+              ("KNN MinMax", knn_min_max_model, x_test_min_max_normalized, y_test_1d_array, x_train_min_max_normalized, y_train_1d_array),
+              ("KNN Std", knn_std_model, x_test_std_normalized, y_test_1d_array, x_train_std_normalized, y_train_1d_array)]
 
+print("\t\tMODEL RESULTS")
+print("model\t\tts_score\ttr_score")
+for i in model_list:
+    if i[0] in ("SVC RBF", "SVR RBF", "KNN Std"):
+        print(f"{i[0]}\t\t{round(i[1].score(i[2], i[3]), 4)}\t\t{round(i[1].score(i[4], i[5]), 4)}")
+    elif i[0] == "SVR sigmoid":
+        print(f"{i[0]}\t{round(i[1].score(i[2], i[3]), 4)}\t{round(i[1].score(i[4], i[5]), 4)}")
+    else:    
+        print(f"{i[0]}\t{round(i[1].score(i[2], i[3]), 4)}\t\t{round(i[1].score(i[4], i[5]), 4)}")
