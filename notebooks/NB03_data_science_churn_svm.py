@@ -29,7 +29,7 @@ PROCESS:
         ¬ Model training
         ¬ Model testing
     ¬ Model selection
-    ¬ Model serialization
+    ¬ Models serialization
 
 ASSUMPTIONS:
     ¬ The dataset field to drop were:
@@ -80,6 +80,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
+import pickle
 
 
 """
@@ -363,3 +364,18 @@ for i in model_list:
         print(f"{i[0]}\t{round(i[1].score(i[2], i[3]), 4)}\t{round(i[1].score(i[4], i[5]), 4)}")
     else:    
         print(f"{i[0]}\t{round(i[1].score(i[2], i[3]), 4)}\t\t{round(i[1].score(i[4], i[5]), 4)}")
+
+"""
+SECTION 5 - MODELS SERIALIZATION
+"""
+with open("../models/faa_one_hot_encoder_model.pkl", "wb") as arc:
+    pickle.dump(one_hot_categorical, arc)
+
+with open("../models/faa_d_tree_dep4_model.pkl", "wb") as arc:
+    pickle.dump(tree_model_d4, arc)
+
+with open("../models/faa_d_tree_dep5_model.pkl", "wb") as arc:
+    pickle.dump(tree_model_d5, arc)
+
+with open("../models/faa_svc_linear_model.pkl", "wb") as arc:
+    pickle.dump(svc_linear_model, arc)
