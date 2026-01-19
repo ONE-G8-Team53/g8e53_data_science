@@ -65,8 +65,9 @@ DATE - CHANGE - AUTHOR (NEWEST ON TOP):
     2026-01-04  Felix Armenta
                 Accuracy with SVM's algorithms compared between kernels
 """
-# import numpy as np
+
 import pandas as pd
+import seaborn
 import plotly.express as px
 from sklearn.compose import make_column_transformer
 from sklearn.preprocessing import OneHotEncoder
@@ -81,6 +82,15 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 import pickle
+from importlib.metadata import distributions
+import joblib
+
+
+"""
+SECTION 0 - MODULES AND THEIR VERSIONS
+"""
+for dist in distributions():
+    print(f"{dist.metadata['Name']}=={dist.version}")
 
 
 """
@@ -112,6 +122,19 @@ px.box(datos, x="last_login_days", color="churned")
 px.box(datos, x="monthly_fee", color="churned")
 px.box(datos, x="number_of_profiles", color="churned")
 px.box(datos, x="avg_watch_time_per_day", color="churned")
+
+numeric_columns = ["age",
+                   "watch_hours",
+                   "last_login_days",
+                   "monthly_fee",
+                   "number_of_profiles",
+                   "avg_watch_time_per_day"]
+
+correlation_matrix = datos[numeric_columns + ["churned"]].corr()
+plt.figure(figsize=(10, 6))
+seaborn.heatmap(correlation_matrix, annot=True, cmap="coolwarm")
+plt.title("Correlation Matrix")
+plt.show()
 
 
 """
@@ -365,17 +388,23 @@ for i in model_list:
     else:    
         print(f"{i[0]}\t{round(i[1].score(i[2], i[3]), 4)}\t\t{round(i[1].score(i[4], i[5]), 4)}")
 
+
 """
-SECTION 5 - MODELS SERIALIZATION
+SECTION 5 - VALIDATION
 """
-with open("../models/faa_one_hot_encoder_model.pkl", "wb") as arc:
-    pickle.dump(one_hot_categorical, arc)
 
-with open("../models/faa_d_tree_dep4_model.pkl", "wb") as arc:
-    pickle.dump(tree_model_d4, arc)
 
-with open("../models/faa_d_tree_dep5_model.pkl", "wb") as arc:
-    pickle.dump(tree_model_d5, arc)
+"""
+SECTION 6 - MODELS SERIALIZATION
+"""
+# with open("../models/faa_one_hot_encoder_model.pkl", "wb") as arc:
+#     pickle.dump(one_hot_categorical, arc)
 
-with open("../models/faa_svc_linear_model.pkl", "wb") as arc:
-    pickle.dump(svc_linear_model, arc)
+# with open("../models/faa_d_tree_dep4_model.pkl", "wb") as arc:
+#     pickle.dump(tree_model_d4, arc)
+
+# with open("../models/faa_d_tree_dep5_model.pkl", "wb") as arc:
+#     pickle.dump(tree_model_d5, arc)
+
+# with open("../models/faa_svc_linear_model.pkl", "wb") as arc:
+#     pickle.dump(svc_linear_model, arc)
