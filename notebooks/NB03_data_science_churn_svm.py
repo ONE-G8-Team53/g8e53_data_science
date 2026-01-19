@@ -29,8 +29,8 @@ PROCESS:
         ¬ Model training
         ¬ Model testing
     ¬ Model selection
-    ¬ Models validations
-    ¬ Models serialization
+    ¬ Model validation
+    ¬ Model serialization
 
 ASSUMPTIONS:
     ¬ The dataset field to drop were:
@@ -87,6 +87,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.metrics import confusion_matrix
 import pickle
 import joblib
 
@@ -201,11 +202,11 @@ SECTION 3.1 - BASELINE
 dummy_model = DummyClassifier(random_state=4)
 dummy_model.fit(x_train, y_train)
 dummy_model.score(x_test, y_test)   # Accuracy 0.5032
-y_pred = dummy_model.predict(x_test)
-y_prob = dummy_model.predict_proba(x_test)[:, 1]
+y_pred_dummy = dummy_model.predict(x_test)
+y_prob_dummy = dummy_model.predict_proba(x_test)[:, 1]
 
-print(classification_report(y_test, y_pred))
-print("ROC AUC:", roc_auc_score(y_test, y_prob))
+print(classification_report(y_test, y_pred_dummy))
+print("ROC AUC DUMMY:", roc_auc_score(y_test, y_prob_dummy))
 
 """
 SECTION 3.2 - DECISION TREE
@@ -441,16 +442,49 @@ for i in model_list:
 
 
 """
-SECTION 5 - VALIDATION
+SECTION 5 - MODEL VALIDATION
 """
 # 5.1 Dummy
-
+conf_matrix_dummy = confusion_matrix(y_test, y_pred_dummy)
+plt.figure(figsize=(6, 4))
+seaborn.heatmap(conf_matrix_dummy,
+                annot=True,
+                fmt="d",
+                cmap="YlOrBr",
+                xticklabels=["No Churn", "Churn"],
+                yticklabels=["No Churn", "Churn"])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix - Dummy Model")
+plt.show()
 
 # 5.2 Decision Tree D4
-
+conf_matrix_tree_d4 = confusion_matrix(y_test, y_pred_tree_d4)
+plt.figure(figsize=(6, 4))
+seaborn.heatmap(conf_matrix_tree_d4,
+                annot=True,
+                fmt="d",
+                cmap="Purples",
+                xticklabels=["No Churn", "Churn"],
+                yticklabels=["No Churn", "Churn"])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix - Decesion Tree Depth 4")
+plt.show()
 
 # 5.3 SVC Linear
-
+conf_matrix_svc_linear = confusion_matrix(y_test, y_pred_svc_linear)
+plt.figure(figsize=(6, 4))
+seaborn.heatmap(conf_matrix_svc_linear,
+                annot=True,
+                fmt="d",
+                cmap="YlGn",
+                xticklabels=["No Churn", "Churn"],
+                yticklabels=["No Churn", "Churn"])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix - SVC Linear (SVM)")
+plt.show()
 
 
 """
