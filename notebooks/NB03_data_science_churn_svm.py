@@ -29,6 +29,7 @@ PROCESS:
         ¬ Model training
         ¬ Model testing
     ¬ Model selection
+    ¬ Models validations
     ¬ Models serialization
 
 ASSUMPTIONS:
@@ -49,6 +50,7 @@ ASSUMPTIONS:
 DEPENDENCIES:
     ¬ pandas            2.3.3
         - numpy         2.4.0
+    ¬ seaborn           0.13.2
     ¬ plotly            6.5.0
         ¬ narwhals      2.14.0
     ¬ nbformat          5.10.4
@@ -62,10 +64,13 @@ USE:
     Consult the README.md file to use the models
 
 DATE - CHANGE - AUTHOR (NEWEST ON TOP):
+    2026-01-19  Felix Armenta
+                Correlation matrix added and validations
     2026-01-04  Felix Armenta
                 Accuracy with SVM's algorithms compared between kernels
 """
 
+from importlib.metadata import distributions
 import pandas as pd
 import seaborn
 import plotly.express as px
@@ -81,8 +86,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, roc_auc_score
 import pickle
-from importlib.metadata import distributions
 import joblib
 
 
@@ -196,6 +201,11 @@ SECTION 3.1 - BASELINE
 dummy_model = DummyClassifier(random_state=4)
 dummy_model.fit(x_train, y_train)
 dummy_model.score(x_test, y_test)   # Accuracy 0.5032
+y_pred = dummy_model.predict(x_test)
+y_prob = dummy_model.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred))
+print("ROC AUC:", roc_auc_score(y_test, y_prob))
 
 """
 SECTION 3.2 - DECISION TREE
@@ -220,6 +230,12 @@ plot_tree(tree_model_overfitted, filled=True,
           feature_names=valores_columnas)
 # Overfitting test
 tree_model_overfitted.score(x_train, y_train)
+y_pred_over_tree = tree_model_overfitted.predict(x_test)
+y_prob_over_tree = tree_model_overfitted.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_over_tree))
+print("ROC AUC:", roc_auc_score(y_test, y_prob_over_tree))
+
 
 # RIGHT DECISION TREE MODEL
 # for i in range(2, 13):
@@ -254,6 +270,12 @@ tree_model_d4.fit(x_train, y_train)
 tree_model_d4.score(x_test, y_test)
 plt.figure(figsize=(15, 6))
 plot_tree(tree_model_d4, filled=True, class_names=["no", "yes"])
+y_pred_tree_d4 = tree_model_d4.predict(x_test)
+y_prob_tree_d4 = tree_model_d4.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_tree_d4))
+print("ROC AUC Dec Tree D4:", roc_auc_score(y_test, y_prob_tree_d4))
+
 
 # 3.2.2 DECISION TREE DEPTH 5
 tree_model_d5 = DecisionTreeClassifier(max_depth=5,
@@ -262,6 +284,11 @@ tree_model_d5.fit(x_train, y_train)
 tree_model_d5.score(x_test, y_test)
 plt.figure(figsize=(15, 6))
 plot_tree(tree_model_d5, filled=True, class_names=["no", "yes"])
+y_pred_tree_d5 = tree_model_d5.predict(x_test)
+y_prob_tree_d5 = tree_model_d5.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_tree_d5))
+print("ROC AUC Dec Tree D5:", roc_auc_score(y_test, y_prob_tree_d5))
 
 
 """
@@ -282,6 +309,12 @@ svc_rbf_model.fit(x_train, y_train_1d_array)
 svc_rbf_model.score(x_test, y_test_1d_array)        # 0.8576
 # Overfitting test
 svc_rbf_model.score(x_train, y_train_1d_array)      # OK 0.874133
+# ROC AUC
+y_pred_svc_rbf = svc_rbf_model.predict(x_test)
+# y_prob_svc_rbf = svc_rbf_model.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_svc_rbf))
+# print("ROC AUC SVC RBF:", roc_auc_score(y_test, y_prob_svc_rbf))
 
 # 3.3.2 SVC WITH KERNEL LINEAR
 svc_linear_model = svm.SVC(kernel="linear", C=1.0, gamma="scale")
@@ -289,6 +322,13 @@ svc_linear_model.fit(x_train, y_train_1d_array)
 svc_linear_model.score(x_test, y_test_1d_array)     # 0.8768
 # Overfitting test
 svc_linear_model.score(x_train, y_train_1d_array)   # OK 0.893866
+# ROC AUC
+y_pred_svc_linear = svc_linear_model.predict(x_test)
+# y_prob_svc_linear = svc_linear_model.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_svc_linear))
+# print("ROC AUC SVC Linear:", roc_auc_score(y_test, y_prob_svc_linear))
+
 
 # 3.3.3 SVC WITH KERNEL POLYNOMIAL
 svc_poly_model = svm.SVC(kernel="poly", C=1.0, gamma="scale")
@@ -354,11 +394,22 @@ pd.DataFrame(x_train_min_max_normalized)
 knn_min_max_model = KNeighborsClassifier()
 knn_min_max_model.fit(x_train_min_max_normalized, y_train_1d_array)
 knn_min_max_model.score(x_test_min_max_normalized, y_test_1d_array)   # 0.6816
+y_pred_knn_min_max = knn_min_max_model.predict(x_test)
+y_prob_knn_min_max = knn_min_max_model.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_knn_min_max))
+print("ROC AUC KNN MIN MAX:", roc_auc_score(y_test, y_prob_knn_min_max))
+
 
 # 3.4.2 KNN Model with std scaler
 knn_std_model = KNeighborsClassifier()
 knn_std_model.fit(x_train_std_normalized, y_train_1d_array)
 knn_std_model.score(x_test_std_normalized, y_test_1d_array)           # 0.7176
+y_pred_knn_std = knn_std_model.predict(x_test)
+y_prob_knn_std = knn_std_model.predict_proba(x_test)[:, 1]
+
+print(classification_report(y_test, y_pred_knn_std))
+print("ROC AUC KNN STD:", roc_auc_score(y_test, y_prob_knn_std))
 
 
 """
@@ -392,6 +443,14 @@ for i in model_list:
 """
 SECTION 5 - VALIDATION
 """
+# 5.1 Dummy
+
+
+# 5.2 Decision Tree D4
+
+
+# 5.3 SVC Linear
+
 
 
 """
